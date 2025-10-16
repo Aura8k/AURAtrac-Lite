@@ -1,0 +1,13 @@
+{
+    "input_type": "keyboard",
+    "input_code": 44,
+    "is_rapid_mode": false,
+    "amount": 1,
+    "burst_idle_ms": 50,
+    "font_size": 36,
+    "text_color": "#FFFF00",
+    "bg_color": "#C0C0C0",
+    "is_bold": true,
+    "is_transparent": true,
+    "opacity": 1.0
+}

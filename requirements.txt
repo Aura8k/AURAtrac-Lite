@@ -1,0 +1,3 @@
+Set-Content .\requirements.txt "keyboard`nmouse"
+# sanity check:
+Get-Content .\requirements.txt
