@@ -887,6 +887,13 @@ class ControlPanel(tk.Toplevel):
 
     # --- Methods ---
     def _configure_spinbox(self, spinbox: ttk.Spinbox, var: tk.Variable | None):
+        try:
+            spinbox.configure(insertbackground="#32CD32")
+        except tk.TclError:
+            try:
+                spinbox.configure(insertcolor="#32CD32")
+            except tk.TclError:
+                pass
         spinbox.bind("<Return>", lambda event, v=var: self._on_spinbox_commit(event, v))
         spinbox.bind("<KP_Enter>", lambda event, v=var: self._on_spinbox_commit(event, v))
 
