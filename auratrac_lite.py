@@ -165,6 +165,7 @@ class CounterCore(threading.Thread):
         # Hooks
         self.key_hook: Any = None
         self.mouse_hook: Any = None
+        self._pressed_keys: set[int] = set()
         self._setup_hooks()
 
     def _update_count(self, delta: int):
@@ -221,8 +222,22 @@ class CounterCore(threading.Thread):
         self.update_q.put(("sequence_presses", self.sequence_presses))
 
     def _key_callback(self, event):
-        if event.event_type == keyboard.KEY_DOWN and event.scan_code == self.settings.input_code:
-            self._handle_input()
+        event_type = event.event_type
+        scan_code = getattr(event, "scan_code", None)
+
+        if scan_code is None:
+            return
+
+        if scan_code == self.settings.input_code:
+            if event_type == keyboard.KEY_DOWN:
+                if scan_code not in self._pressed_keys:
+                    self._pressed_keys.add(scan_code)
+                    self._handle_input()
+            elif event_type == keyboard.KEY_UP:
+                self._pressed_keys.discard(scan_code)
+        elif event_type == keyboard.KEY_UP:
+            # Ensure we clear stale entries when switching inputs mid-press.
+            self._pressed_keys.discard(scan_code)
         
     def _mouse_callback(self, event):
         button_name_map = {
@@ -248,6 +263,7 @@ class CounterCore(threading.Thread):
     def _setup_hooks(self):
         if not HOOK_AVAILABLE: return
         self._teardown_hooks()
+        self._pressed_keys.clear()
 
         # Global hotkeys
         keyboard.add_hotkey('-', lambda: self._update_count(-1))
