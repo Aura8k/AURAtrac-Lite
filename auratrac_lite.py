@@ -559,8 +559,29 @@ class ControlPanel(tk.Toplevel):
             foreground=[("disabled", "#475569")],
         )
 
-        style.element_configure("Spinbox.uparrow", borderwidth=0, relief="flat")
-        style.element_configure("Spinbox.downarrow", borderwidth=0, relief="flat")
+        try:
+            style.tk.call(
+                "ttk::style",
+                "element",
+                "configure",
+                "Spinbox.uparrow",
+                "-borderwidth",
+                0,
+                "-relief",
+                "flat",
+            )
+            style.tk.call(
+                "ttk::style",
+                "element",
+                "configure",
+                "Spinbox.downarrow",
+                "-borderwidth",
+                0,
+                "-relief",
+                "flat",
+            )
+        except tk.TclError:
+            pass
 
         style.configure(
             "Modern.TSpinbox",
