@@ -559,17 +559,22 @@ class ControlPanel(tk.Toplevel):
             foreground=[("disabled", "#475569")],
         )
 
+        style.element_configure("Spinbox.uparrow", borderwidth=0, relief="flat")
+        style.element_configure("Spinbox.downarrow", borderwidth=0, relief="flat")
+
         style.configure(
             "Modern.TSpinbox",
             background="#0F172A",
             foreground=TEXT_COLOR,
             fieldbackground="#0F172A",
             arrowsize=14,
+            arrowcolor=TEXT_COLOR,
         )
         style.map(
             "Modern.TSpinbox",
             fieldbackground=[("!disabled", "#0F172A")],
             foreground=[("disabled", "#475569")],
+            arrowcolor=[("disabled", "#475569"), ("!disabled", TEXT_COLOR)],
         )
 
         style.configure(
