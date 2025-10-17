@@ -598,6 +598,14 @@ class ControlPanel(tk.Toplevel):
             arrowcolor=[("disabled", "#475569"), ("!disabled", TEXT_COLOR)],
         )
 
+        self._spinbox_caret_color = "#32CD32"
+        for spin_style in ("TSpinbox", "Modern.TSpinbox"):
+            for option in ("insertcolor", "insertbackground"):
+                try:
+                    style.configure(spin_style, **{option: self._spinbox_caret_color})
+                except tk.TclError:
+                    continue
+
         style.configure(
             "Modern.Horizontal.TScale",
             background=PANEL_BG,
@@ -886,14 +894,22 @@ class ControlPanel(tk.Toplevel):
         self.status_label = status_label
 
     # --- Methods ---
-    def _configure_spinbox(self, spinbox: ttk.Spinbox, var: tk.Variable | None):
-        try:
-            spinbox.configure(insertbackground="#32CD32")
-        except tk.TclError:
+    def _apply_spinbox_caret_color(self, widget: tk.Misc) -> bool:
+        for option in ("insertbackground", "insertcolor"):
             try:
-                spinbox.configure(insertcolor="#32CD32")
-            except tk.TclError:
-                pass
+                widget.configure(**{option: self._spinbox_caret_color})
+                return True
+            except (tk.TclError, TypeError, AttributeError):
+                continue
+        return False
+
+    def _configure_spinbox(self, spinbox: ttk.Spinbox, var: tk.Variable | None):
+        self._apply_spinbox_caret_color(spinbox)
+        for child in spinbox.winfo_children():
+            try:
+                self._apply_spinbox_caret_color(child)
+            except Exception:
+                continue
         spinbox.bind("<Return>", lambda event, v=var: self._on_spinbox_commit(event, v))
         spinbox.bind("<KP_Enter>", lambda event, v=var: self._on_spinbox_commit(event, v))
 
