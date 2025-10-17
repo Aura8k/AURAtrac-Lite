@@ -1,1 +1,3 @@
-﻿pywin32
+keyboard
+mouse
+pywin32; platform_system == "Windows"
