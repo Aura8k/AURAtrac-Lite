@@ -34,7 +34,7 @@ import queue
 import threading
 import time
 from dataclasses import dataclass, asdict, replace
-from typing import Literal, Any
+from typing import Literal, Any, Dict
 
 import tkinter as tk
 from tkinter import ttk, colorchooser, messagebox
@@ -57,6 +57,7 @@ class Settings:
     # Tracking
     input_type: Literal["keyboard", "mouse"] = "keyboard"
     input_code: int = 44  # Default: 'z' (keyboard scan code)
+    input_display: str = ""
     
     # Simple toggle for rapid counting
     is_rapid_mode: bool = True 
@@ -79,15 +80,54 @@ class Settings:
 
 # --- Utility Function for Key Name ---
 
+SCAN_CODE_NAME_CACHE: Dict[int, str] = {}
+
+
+def _format_key_name(name: str) -> str:
+    """Normalizes key names for display purposes."""
+    if not name:
+        return name
+    if len(name) == 1:
+        return name.upper()
+    return name.replace("_", " ").title()
+
+
 def get_key_name_from_scan_code(scan_code: int) -> str:
     """Safely converts a keyboard scan code to a readable key name."""
     if not HOOK_AVAILABLE:
         return f"Code {scan_code}"
+    if scan_code in SCAN_CODE_NAME_CACHE:
+        return SCAN_CODE_NAME_CACHE[scan_code]
     try:
         name = keyboard.get_key_name(scan_code)
-        return name.capitalize() if name else f"Code {scan_code}"
+        if name:
+            formatted = _format_key_name(name)
+            SCAN_CODE_NAME_CACHE[scan_code] = formatted
+            return formatted
     except Exception:
-        return f"Code {scan_code}"
+        pass
+
+    # Fallback: attempt to resolve via canonical key names
+    try:
+        canonical = getattr(keyboard, "_canonical_names", None)
+        if canonical and hasattr(canonical, "canonical_names"):
+            for key_name in canonical.canonical_names:
+                try:
+                    scan_codes = keyboard.key_to_scan_codes(key_name, error=False)
+                except TypeError:
+                    scan_codes = keyboard.key_to_scan_codes(key_name)
+                except (AttributeError, ValueError):
+                    continue
+                if scan_code in scan_codes:
+                    formatted = _format_key_name(key_name)
+                    SCAN_CODE_NAME_CACHE[scan_code] = formatted
+                    return formatted
+    except Exception:
+        pass
+
+    fallback = f"Code {scan_code}"
+    SCAN_CODE_NAME_CACHE[scan_code] = fallback
+    return fallback
 
 
 # --- Core Logic (Runs in a separate thread) ---
@@ -210,7 +250,10 @@ class CounterCore(threading.Thread):
         # Tracking hook
         if self.settings.input_type == "keyboard":
             self.key_hook = keyboard.hook(self._key_callback)
-            key_name = get_key_name_from_scan_code(self.settings.input_code)
+            key_name = self.settings.input_display
+            if not key_name:
+                key_name = get_key_name_from_scan_code(self.settings.input_code)
+                self.settings.input_display = key_name
             self.update_q.put(("status", f"Tracking Key: {key_name}"))
         elif self.settings.input_type == "mouse":
             self.mouse_hook = mouse.hook(self._mouse_callback)
@@ -219,7 +262,8 @@ class CounterCore(threading.Thread):
                 4: "Thumb 1 (Back)", 5: "Thumb 2 (Forward)",
                 10: "Scroll Wheel Up", 11: "Scroll Wheel Down"
             }
-            mouse_btn_name = mouse_btn_name_map.get(self.settings.input_code, 'Unknown')
+            mouse_btn_name = mouse_btn_name_map.get(self.settings.input_code, self.settings.input_display or 'Unknown')
+            self.settings.input_display = mouse_btn_name
             self.update_q.put(("status", f"Tracking Mouse: {mouse_btn_name}"))
 
     def _teardown_hooks(self):
@@ -388,10 +432,10 @@ class ControlPanel(tk.Toplevel):
         style.configure("TLabel", padding=2)
 
         # Variables
-        initial_input_name = "...Press Key/Mouse..."
-        if settings.input_type == "keyboard":
+        initial_input_name = settings.input_display or "...Press Key/Mouse..."
+        if settings.input_type == "keyboard" and (not initial_input_name or initial_input_name.startswith("Code ")):
             initial_input_name = get_key_name_from_scan_code(settings.input_code)
-        elif settings.input_type == "mouse":
+        elif settings.input_type == "mouse" and (not initial_input_name or initial_input_name.startswith("Code ")):
             mouse_map = {
                 1: "Left Click", 2: "Middle Click", 3: "Right Click",
                 4: "Thumb 1 (Back)", 5: "Thumb 2 (Forward)",
@@ -605,14 +649,20 @@ class ControlPanel(tk.Toplevel):
         if self.is_capturing and event.event_type == keyboard.KEY_DOWN:
             self.settings.input_type = "keyboard"
             self.settings.input_code = event.scan_code
-            
-            key_name = get_key_name_from_scan_code(event.scan_code)
+
+            key_name = event.name
+            if key_name:
+                key_name = _format_key_name(key_name)
+            if not key_name:
+                key_name = get_key_name_from_scan_code(event.scan_code)
+
+            self.settings.input_display = key_name
             self.input_var.set(key_name)
-            
+
             self._end_capture()
             self._apply_pending_settings()
             self.status.set(f"Input captured: Key '{key_name}'")
-            return False 
+            return False
         
     def _capture_mouse(self, event):
         if self.is_capturing:
@@ -639,6 +689,7 @@ class ControlPanel(tk.Toplevel):
 
             if mouse_code != 0:
                 self.settings.input_code = mouse_code
+                self.settings.input_display = mouse_name
                 self.input_var.set(mouse_name)
                 self._end_capture()
                 self._apply_pending_settings()
@@ -678,18 +729,21 @@ class ControlPanel(tk.Toplevel):
         # Update the input label display based on current settings
         if self.settings.input_type == "keyboard":
             name = get_key_name_from_scan_code(self.settings.input_code)
-            self.input_var.set(name)
+            if not name.startswith("Code ") or not self.settings.input_display:
+                self.settings.input_display = name
+            self.input_var.set(self.settings.input_display)
         elif self.settings.input_type == "mouse":
             mouse_map = {
-                1: "Left Click", 
-                2: "Middle Click", 
-                3: "Right Click", 
-                4: "Thumb 1 (Back)", 
-                5: "Thumb 2 (Forward)", 
+                1: "Left Click",
+                2: "Middle Click",
+                3: "Right Click",
+                4: "Thumb 1 (Back)",
+                5: "Thumb 2 (Forward)",
                 10: "Scroll Wheel Up",
                 11: "Scroll Wheel Down"
             }
             name = mouse_map.get(self.settings.input_code, f"Code {self.settings.input_code}")
+            self.settings.input_display = name
             self.input_var.set(name)
         
         # Mode labels
@@ -751,9 +805,30 @@ def load_or_default() -> Settings:
                 settings.opacity = max(0.10, min(1.00, float(settings.opacity)))
             except Exception:
                 settings.opacity = 0.85
+            if settings.input_type == "keyboard":
+                resolved = get_key_name_from_scan_code(settings.input_code)
+                if not settings.input_display or settings.input_display.startswith("Code "):
+                    settings.input_display = resolved
+            elif settings.input_type == "mouse":
+                mouse_map = {
+                    1: "Left Click",
+                    2: "Middle Click",
+                    3: "Right Click",
+                    4: "Thumb 1 (Back)",
+                    5: "Thumb 2 (Forward)",
+                    10: "Scroll Wheel Up",
+                    11: "Scroll Wheel Down"
+                }
+                if not settings.input_display:
+                    settings.input_display = mouse_map.get(settings.input_code, f"Code {settings.input_code}")
             return settings
         except Exception:
             print(f"Warning: Could not load or parse {CONFIG_FILE}. Using default settings.")
+    if not settings.input_display:
+        if settings.input_type == "keyboard":
+            settings.input_display = get_key_name_from_scan_code(settings.input_code)
+        elif settings.input_type == "mouse":
+            settings.input_display = "Left Click"
     return settings
 
 
