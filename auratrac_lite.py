@@ -476,18 +476,19 @@ class ControlPanel(tk.Toplevel):
         style.configure("CardInner.TFrame", background=PANEL_BG)
         style.configure(
             "Card.TLabelframe",
-            background=PANEL_BG,
+            background=CONTROL_BG,
             bordercolor=BORDER_COLOR,
             borderwidth=1,
             relief="solid",
         )
         style.configure(
             "Card.TLabelframe.Label",
-            background=PANEL_BG,
+            background=CONTROL_BG,
             foreground=ACCENT_COLOR,
             font=("Inter", 11, "bold"),
             padding=(6, 0),
         )
+        style.configure("CardBody.TFrame", background=PANEL_BG)
 
         style.configure("Modern.TLabel", background=PANEL_BG, foreground=TEXT_COLOR)
         style.configure(
@@ -669,12 +670,11 @@ class ControlPanel(tk.Toplevel):
 
         header_frame = ttk.Frame(main_frame, style="Main.TFrame")
         header_frame.pack(fill=tk.X, pady=(0, 16))
-        ttk.Label(header_frame, text="AURAtrac Lite", style="Header.TLabel").pack(anchor=tk.W)
         ttk.Label(
             header_frame,
             text="Configure your overlay counter without leaving the action.",
             style="Subheader.TLabel",
-        ).pack(anchor=tk.W, pady=(4, 0))
+        ).pack(anchor=tk.W)
 
         ttk.Separator(main_frame, orient=tk.HORIZONTAL, style="Modern.TSeparator").pack(fill=tk.X, pady=(0, 18))
 
@@ -682,13 +682,18 @@ class ControlPanel(tk.Toplevel):
         settings_frame = ttk.LabelFrame(
             main_frame,
             text="Tracking Configuration",
-            padding="18 14 18 16",
             style="Card.TLabelframe",
         )
         settings_frame.pack(fill=tk.X, pady=(0, 16))
+        settings_body = ttk.Frame(
+            settings_frame,
+            style="CardBody.TFrame",
+            padding="18 14 18 16",
+        )
+        settings_body.pack(fill=tk.X, pady=(1, 0))
 
         # Input Capture
-        input_capture_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        input_capture_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
         input_capture_frame.pack(fill=tk.X, pady=6)
         ttk.Label(input_capture_frame, text="Input:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         self.input_label = ttk.Label(
@@ -707,7 +712,7 @@ class ControlPanel(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=(12, 0))
 
         # Rapid Mode Checkbox
-        rapid_mode_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        rapid_mode_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
         rapid_mode_frame.pack(fill=tk.X, pady=6)
         ttk.Checkbutton(
             rapid_mode_frame,
@@ -718,7 +723,7 @@ class ControlPanel(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=4)
 
         # Idle Time
-        burst_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        burst_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
         burst_frame.pack(fill=tk.X, pady=6)
         ttk.Label(
             burst_frame,
@@ -739,7 +744,7 @@ class ControlPanel(tk.Toplevel):
         self._configure_spinbox(self.burst_idle_spinbox, self.burst_idle_var)
 
         # Amount (Dynamic label)
-        amount_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        amount_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
         amount_frame.pack(fill=tk.X, pady=6)
         self.amount_dynamic_label = ttk.Label(
             amount_frame,
@@ -761,7 +766,7 @@ class ControlPanel(tk.Toplevel):
         self._configure_spinbox(self.amount_spinbox, self.amount_var)
         self._toggle_mode_labels(skip_apply=True)
 
-        update_button_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        update_button_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
         update_button_frame.pack(fill=tk.X, pady=(6, 0))
         self.update_button = ttk.Button(
             update_button_frame,
@@ -775,13 +780,18 @@ class ControlPanel(tk.Toplevel):
         style_frame = ttk.LabelFrame(
             main_frame,
             text="Overlay Style",
-            padding="18 14 18 16",
             style="Card.TLabelframe",
         )
         style_frame.pack(fill=tk.X, pady=(0, 16))
+        style_body = ttk.Frame(
+            style_frame,
+            style="CardBody.TFrame",
+            padding="18 14 18 16",
+        )
+        style_body.pack(fill=tk.X, pady=(1, 0))
 
         # Font Size & Bold
-        font_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        font_frame = ttk.Frame(style_body, style="CardInner.TFrame")
         font_frame.pack(fill=tk.X, pady=6)
         ttk.Label(font_frame, text="Font Size:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         self.font_size_spinbox = ttk.Spinbox(
@@ -805,7 +815,7 @@ class ControlPanel(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=(16, 0))
 
         # Colors + Transparent BG
-        color_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        color_frame = ttk.Frame(style_body, style="CardInner.TFrame")
         color_frame.pack(fill=tk.X, pady=6)
         ttk.Label(color_frame, text="Text Color:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         ttk.Button(
@@ -830,7 +840,7 @@ class ControlPanel(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=(16, 0))
 
         # Opacity
-        opacity_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        opacity_frame = ttk.Frame(style_body, style="CardInner.TFrame")
         opacity_frame.pack(fill=tk.X, pady=6)
         ttk.Label(opacity_frame, text="Opacity:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         self.opacity_scale = ttk.Scale(
@@ -855,11 +865,16 @@ class ControlPanel(tk.Toplevel):
         actions_frame = ttk.LabelFrame(
             main_frame,
             text="Actions",
-            padding="18 14 18 16",
             style="Card.TLabelframe",
         )
         actions_frame.pack(fill=tk.X, pady=(0, 8))
-        actions_row1 = ttk.Frame(actions_frame, style="CardInner.TFrame")
+        actions_body = ttk.Frame(
+            actions_frame,
+            style="CardBody.TFrame",
+            padding="18 14 18 16",
+        )
+        actions_body.pack(fill=tk.X, pady=(1, 0))
+        actions_row1 = ttk.Frame(actions_body, style="CardInner.TFrame")
         actions_row1.pack(fill=tk.X, pady=6)
         ttk.Button(
             actions_row1,
@@ -873,7 +888,7 @@ class ControlPanel(tk.Toplevel):
             command=self.core.toggle_pause,
             style="Subtle.TButton",
         ).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        actions_row2 = ttk.Frame(actions_frame, style="CardInner.TFrame")
+        actions_row2 = ttk.Frame(actions_body, style="CardInner.TFrame")
         actions_row2.pack(fill=tk.X, pady=6)
         ttk.Button(
             actions_row2,
