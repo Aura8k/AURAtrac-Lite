@@ -530,24 +530,35 @@ class ControlPanel(tk.Toplevel):
         self.burst_idle_spinbox = ttk.Spinbox(
             burst_frame,
             textvariable=self.burst_idle_var,
-            from_=0, 
-            to=10000, 
+            from_=0,
+            to=10000,
             increment=10,
             width=6,
             command=self._toggle_mode_labels
         )
         self.burst_idle_spinbox.pack(side=tk.LEFT, padx=(0, 5))
+        self._configure_spinbox(self.burst_idle_spinbox, self.burst_idle_var)
 
         # Amount (Dynamic label)
         amount_frame = ttk.Frame(settings_frame)
         amount_frame.pack(fill=tk.X, pady=5)
         self.amount_dynamic_label = ttk.Label(amount_frame, textvariable=self.amount_label_var)
         self.amount_dynamic_label.pack(side=tk.LEFT, padx=(5, 0))
-        self.amount_spinbox = ttk.Spinbox( 
+        self.amount_spinbox = ttk.Spinbox(
             amount_frame, textvariable=self.amount_var, from_=1, to=9999, increment=1, width=6, command=self._apply_pending_settings
         )
         self.amount_spinbox.pack(side=tk.LEFT, padx=(0, 5))
+        self._configure_spinbox(self.amount_spinbox, self.amount_var)
         self._toggle_mode_labels(skip_apply=True)
+
+        update_button_frame = ttk.Frame(settings_frame)
+        update_button_frame.pack(fill=tk.X, pady=(0, 5))
+        self.update_button = ttk.Button(
+            update_button_frame,
+            text="Update Tracking Settings",
+            command=self._on_update_button
+        )
+        self.update_button.pack(side=tk.RIGHT, padx=(0, 5))
         
         # --- Style Frame ---
         style_frame = ttk.LabelFrame(main_frame, text="Overlay Style", padding="10")
@@ -557,9 +568,11 @@ class ControlPanel(tk.Toplevel):
         font_frame = ttk.Frame(style_frame)
         font_frame.pack(fill=tk.X, pady=5)
         ttk.Label(font_frame, text="Font Size:").pack(side=tk.LEFT, padx=(5, 0))
-        ttk.Spinbox(
+        self.font_size_spinbox = ttk.Spinbox(
             font_frame, textvariable=self.font_size_var, from_=12, to=256, increment=4, width=4, command=self._apply_pending_settings
-        ).pack(side=tk.LEFT, padx=5)
+        )
+        self.font_size_spinbox.pack(side=tk.LEFT, padx=5)
+        self._configure_spinbox(self.font_size_spinbox, self.font_size_var)
         ttk.Checkbutton(
             font_frame, text="Bold", variable=self.bold_var, command=self._apply_pending_settings
         ).pack(side=tk.LEFT, padx=10)
@@ -605,8 +618,47 @@ class ControlPanel(tk.Toplevel):
         # --- Status Bar ---
         status_label = ttk.Label(main_frame, textvariable=self.status, relief=tk.SUNKEN, anchor=tk.W)
         status_label.pack(fill=tk.X, pady=(10, 0))
+        self.status_label = status_label
 
     # --- Methods ---
+    def _configure_spinbox(self, spinbox: ttk.Spinbox, var: tk.Variable | None):
+        spinbox.bind("<Return>", lambda event, v=var: self._on_spinbox_commit(event, v))
+        spinbox.bind("<KP_Enter>", lambda event, v=var: self._on_spinbox_commit(event, v))
+
+    def _defocus_inputs(self):
+        def _refocus():
+            target = getattr(self, "update_button", None)
+            if target and target.winfo_exists():
+                target.focus_set()
+            else:
+                self.focus_set()
+
+        self.after_idle(_refocus)
+
+    def _on_spinbox_commit(self, event: tk.Event, var: tk.Variable | None):
+        widget = event.widget
+        if isinstance(widget, tk.Spinbox):
+            try:
+                widget.selection_clear()
+                widget.icursor(tk.END)
+            except Exception:
+                pass
+
+        if isinstance(var, tk.IntVar):
+            try:
+                value = int(widget.get())
+                var.set(value)
+            except Exception:
+                pass
+
+        self._apply_now()
+        self._defocus_inputs()
+        return "break"
+
+    def _on_update_button(self):
+        self._defocus_inputs()
+        self._apply_now()
+
     def _on_opacity_change(self, _val: str):
         # Update small % label and schedule apply
         try:
@@ -761,6 +813,11 @@ class ControlPanel(tk.Toplevel):
             self._pending_apply_settings = False
             self.status.set("Settings updated (unsaved)")
         self.after(200, self._check_pending_apply)
+
+    def _apply_now(self):
+        self.apply_inputs()
+        self._pending_apply_settings = False
+        self.status.set("Settings updated (unsaved)")
 
     def apply_inputs(self):
         # Tracking
