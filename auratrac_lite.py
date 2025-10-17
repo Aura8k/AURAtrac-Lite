@@ -483,7 +483,7 @@ class ControlPanel(tk.Toplevel):
         )
         style.configure(
             "Card.TLabelframe.Label",
-            background=PANEL_BG,
+            background=CONTROL_BG,
             foreground=ACCENT_COLOR,
             font=("Inter", 11, "bold"),
             padding=(6, 0),
