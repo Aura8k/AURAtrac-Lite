@@ -669,12 +669,11 @@ class ControlPanel(tk.Toplevel):
 
         header_frame = ttk.Frame(main_frame, style="Main.TFrame")
         header_frame.pack(fill=tk.X, pady=(0, 16))
-        ttk.Label(header_frame, text="AURAtrac Lite", style="Header.TLabel").pack(anchor=tk.W)
         ttk.Label(
             header_frame,
             text="Configure your overlay counter without leaving the action.",
             style="Subheader.TLabel",
-        ).pack(anchor=tk.W, pady=(4, 0))
+        ).pack(anchor=tk.W)
 
         ttk.Separator(main_frame, orient=tk.HORIZONTAL, style="Modern.TSeparator").pack(fill=tk.X, pady=(0, 18))
 
