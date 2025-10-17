@@ -470,9 +470,10 @@ class ControlPanel(tk.Toplevel):
 
         self.input_var = tk.StringVar(value=initial_input_name)
         self.rapid_mode_var = tk.BooleanVar(value=settings.is_rapid_mode)
+        self._trace_suspend = False
         self.amount_var = tk.IntVar(value=settings.amount)
         self.burst_idle_var = tk.IntVar(value=settings.burst_idle_ms)
-        self.amount_label_var = tk.StringVar() 
+        self.amount_label_var = tk.StringVar()
 
         self.font_size_var = tk.IntVar(value=settings.font_size)
         self.text_color_var = tk.StringVar(value=settings.text_color)
@@ -486,6 +487,9 @@ class ControlPanel(tk.Toplevel):
 
         self.status = tk.StringVar(value="Ready")
         self.is_capturing = False
+
+        self.amount_var.trace_add("write", self._on_amount_var_changed)
+        self.burst_idle_var.trace_add("write", self._on_burst_idle_var_changed)
 
         self._setup_ui()
         self.apply_inputs()
@@ -637,6 +641,31 @@ class ControlPanel(tk.Toplevel):
         if not skip_apply:
             self._apply_pending_settings()
 
+    def _on_amount_var_changed(self, *_args):
+        if self._trace_suspend:
+            return
+        self._toggle_mode_labels(skip_apply=True)
+        self._apply_pending_settings()
+
+    def _on_burst_idle_var_changed(self, *_args):
+        if self._trace_suspend:
+            return
+        self._toggle_mode_labels(skip_apply=True)
+        self._apply_pending_settings()
+
+    def _set_int_var(self, var: tk.IntVar, value: int):
+        self._trace_suspend = True
+        try:
+            var.set(value)
+        finally:
+            self._trace_suspend = False
+
+    def _get_int_from_var(self, var: tk.IntVar, fallback: int) -> int:
+        try:
+            return int(var.get())
+        except Exception:
+            return fallback
+
     def _choose_color(self, var: tk.StringVar):
         color_code = colorchooser.askcolor(title="Choose Color", initialcolor=var.get())
         if color_code and color_code[1]:
@@ -736,8 +765,18 @@ class ControlPanel(tk.Toplevel):
     def apply_inputs(self):
         # Tracking
         self.settings.is_rapid_mode = self.rapid_mode_var.get()
-        self.settings.amount = max(1, self.amount_var.get()) 
-        self.settings.burst_idle_ms = max(0, self.burst_idle_var.get()) 
+
+        amount_value = self._get_int_from_var(self.amount_var, self.settings.amount)
+        sanitized_amount = max(1, amount_value)
+        self.settings.amount = sanitized_amount
+        if sanitized_amount != amount_value:
+            self._set_int_var(self.amount_var, sanitized_amount)
+
+        idle_value = self._get_int_from_var(self.burst_idle_var, self.settings.burst_idle_ms)
+        sanitized_idle = max(0, idle_value)
+        self.settings.burst_idle_ms = sanitized_idle
+        if sanitized_idle != idle_value:
+            self._set_int_var(self.burst_idle_var, sanitized_idle)
         
         # Style updates
         self.settings.font_size = self.font_size_var.get()
