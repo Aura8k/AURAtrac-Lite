@@ -61,6 +61,17 @@ if HOOK_AVAILABLE:
 # --- Configuration and Persistence ---
 CONFIG_FILE = "auratrac_lite.json"
 
+
+# --- Modern UI Palette ---
+CONTROL_BG = "#0B1120"
+PANEL_BG = "#111C2E"
+ACCENT_COLOR = "#6366F1"
+ACCENT_ACTIVE = "#818CF8"
+ACCENT_PRESSED = "#4F46E5"
+TEXT_COLOR = "#E2E8F0"
+SUBTEXT_COLOR = "#94A3B8"
+BORDER_COLOR = "#1E293B"
+
 @dataclass
 class Settings:
     # Tracking
@@ -453,8 +464,162 @@ class ControlPanel(tk.Toplevel):
 
         # Style setup
         style = ttk.Style()
-        style.configure("TButton", padding=6)
-        style.configure("TLabel", padding=2)
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
+
+        self.configure(bg=CONTROL_BG)
+        self.option_add("*Font", ("Inter", 10))
+
+        style.configure("Main.TFrame", background=CONTROL_BG)
+        style.configure("CardInner.TFrame", background=PANEL_BG)
+        style.configure(
+            "Card.TLabelframe",
+            background=PANEL_BG,
+            bordercolor=BORDER_COLOR,
+            borderwidth=1,
+            relief="solid",
+        )
+        style.configure(
+            "Card.TLabelframe.Label",
+            background=PANEL_BG,
+            foreground=ACCENT_COLOR,
+            font=("Inter", 11, "bold"),
+            padding=(6, 0),
+        )
+
+        style.configure("Modern.TLabel", background=PANEL_BG, foreground=TEXT_COLOR)
+        style.configure(
+            "Header.TLabel",
+            background=CONTROL_BG,
+            foreground=TEXT_COLOR,
+            font=("Inter", 15, "bold"),
+        )
+        style.configure(
+            "Subheader.TLabel",
+            background=CONTROL_BG,
+            foreground=SUBTEXT_COLOR,
+            font=("Inter", 10),
+        )
+        style.configure(
+            "Status.TLabel",
+            background=CONTROL_BG,
+            foreground=SUBTEXT_COLOR,
+            padding=(12, 10),
+            font=("Inter", 9),
+        )
+        style.configure(
+            "InputDisplay.TLabel",
+            background="#0D1B2A",
+            foreground=TEXT_COLOR,
+            padding=(10, 6),
+            font=("Inter", 10, "bold"),
+        )
+
+        style.configure(
+            "Accent.TButton",
+            background=ACCENT_COLOR,
+            foreground="#0B1120",
+            padding=(14, 8),
+            borderwidth=0,
+            focusthickness=3,
+            focuscolor=ACCENT_COLOR,
+            font=("Inter", 10, "bold"),
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("pressed", ACCENT_PRESSED), ("active", ACCENT_ACTIVE)],
+            foreground=[("disabled", "#475569")],
+        )
+
+        style.configure(
+            "Subtle.TButton",
+            background="#1E293B",
+            foreground=TEXT_COLOR,
+            padding=(12, 8),
+            borderwidth=0,
+            font=("Inter", 10),
+        )
+        style.map(
+            "Subtle.TButton",
+            background=[("pressed", "#0F172A"), ("active", "#16213A")],
+            foreground=[("disabled", "#475569")],
+        )
+
+        style.configure(
+            "Modern.TCheckbutton",
+            background=PANEL_BG,
+            foreground=TEXT_COLOR,
+            font=("Inter", 10),
+        )
+        style.map(
+            "Modern.TCheckbutton",
+            background=[("pressed", PANEL_BG), ("active", PANEL_BG)],
+            foreground=[("disabled", "#475569")],
+        )
+
+        try:
+            style.tk.call(
+                "ttk::style",
+                "element",
+                "configure",
+                "Spinbox.uparrow",
+                "-borderwidth",
+                0,
+                "-relief",
+                "flat",
+            )
+            style.tk.call(
+                "ttk::style",
+                "element",
+                "configure",
+                "Spinbox.downarrow",
+                "-borderwidth",
+                0,
+                "-relief",
+                "flat",
+            )
+        except tk.TclError:
+            pass
+
+        style.configure(
+            "Modern.TSpinbox",
+            background="#0F172A",
+            foreground=TEXT_COLOR,
+            fieldbackground="#0F172A",
+            arrowsize=14,
+            arrowcolor=TEXT_COLOR,
+        )
+        style.map(
+            "Modern.TSpinbox",
+            fieldbackground=[("!disabled", "#0F172A")],
+            foreground=[("disabled", "#475569")],
+            arrowcolor=[("disabled", "#475569"), ("!disabled", TEXT_COLOR)],
+        )
+
+        self._spinbox_caret_color = "#32CD32"
+        for spin_style in ("TSpinbox", "Modern.TSpinbox"):
+            for option in ("insertcolor", "insertbackground"):
+                try:
+                    style.configure(spin_style, **{option: self._spinbox_caret_color})
+                except tk.TclError:
+                    continue
+
+        style.configure(
+            "Modern.Horizontal.TScale",
+            background=PANEL_BG,
+            troughcolor="#0F172A",
+            bordercolor=PANEL_BG,
+            lightcolor=ACCENT_COLOR,
+            darkcolor=ACCENT_COLOR,
+        )
+        style.map(
+            "Modern.Horizontal.TScale",
+            background=[("active", ACCENT_ACTIVE)],
+        )
+
+        style.configure("Modern.TSeparator", background=BORDER_COLOR)
 
         # Variables
         initial_input_name = settings.input_display or "...Press Key/Mouse..."
@@ -499,129 +664,252 @@ class ControlPanel(tk.Toplevel):
         self.after(100, self._check_pending_apply)
         
     def _setup_ui(self):
-        main_frame = ttk.Frame(self, padding="10 10 10 10")
+        main_frame = ttk.Frame(self, padding="20 20 20 16", style="Main.TFrame")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        header_frame = ttk.Frame(main_frame, style="Main.TFrame")
+        header_frame.pack(fill=tk.X, pady=(0, 16))
+        ttk.Label(header_frame, text="AURAtrac Lite", style="Header.TLabel").pack(anchor=tk.W)
+        ttk.Label(
+            header_frame,
+            text="Configure your overlay counter without leaving the action.",
+            style="Subheader.TLabel",
+        ).pack(anchor=tk.W, pady=(4, 0))
+
+        ttk.Separator(main_frame, orient=tk.HORIZONTAL, style="Modern.TSeparator").pack(fill=tk.X, pady=(0, 18))
+
         # --- Tracking Frame ---
-        settings_frame = ttk.LabelFrame(main_frame, text="Tracking Configuration", padding="10")
-        settings_frame.pack(fill=tk.X, pady=10)
+        settings_frame = ttk.LabelFrame(
+            main_frame,
+            text="Tracking Configuration",
+            padding="18 14 18 16",
+            style="Card.TLabelframe",
+        )
+        settings_frame.pack(fill=tk.X, pady=(0, 16))
 
         # Input Capture
-        input_capture_frame = ttk.Frame(settings_frame)
-        input_capture_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(input_capture_frame, text="Input:").pack(side=tk.LEFT, padx=(5, 0))
-        self.input_label = ttk.Label(input_capture_frame, textvariable=self.input_var, relief=tk.SUNKEN, width=20)
-        self.input_label.pack(side=tk.LEFT, padx=5)
-        ttk.Button(input_capture_frame, text="Capture...", command=self._start_capture).pack(side=tk.LEFT)
-        
+        input_capture_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        input_capture_frame.pack(fill=tk.X, pady=6)
+        ttk.Label(input_capture_frame, text="Input:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
+        self.input_label = ttk.Label(
+            input_capture_frame,
+            textvariable=self.input_var,
+            style="InputDisplay.TLabel",
+            relief=tk.SUNKEN,
+            width=22,
+        )
+        self.input_label.pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(
+            input_capture_frame,
+            text="Capture…",
+            command=self._start_capture,
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, padx=(12, 0))
+
         # Rapid Mode Checkbox
-        rapid_mode_frame = ttk.Frame(settings_frame)
-        rapid_mode_frame.pack(fill=tk.X, pady=5)
+        rapid_mode_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        rapid_mode_frame.pack(fill=tk.X, pady=6)
         ttk.Checkbutton(
-            rapid_mode_frame, text="Rapid Mode (Count every press)", 
-            variable=self.rapid_mode_var, 
-            command=self._toggle_mode_labels
-        ).pack(side=tk.LEFT, padx=5)
+            rapid_mode_frame,
+            text="Rapid Mode (Count every press)",
+            variable=self.rapid_mode_var,
+            command=self._toggle_mode_labels,
+            style="Modern.TCheckbutton",
+        ).pack(side=tk.LEFT, padx=4)
 
         # Idle Time
-        burst_frame = ttk.Frame(settings_frame)
-        burst_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(burst_frame, text="Idle Time (ms) to reset sequence (0=Off):").pack(side=tk.LEFT, padx=(5, 0))
+        burst_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        burst_frame.pack(fill=tk.X, pady=6)
+        ttk.Label(
+            burst_frame,
+            text="Idle Time (ms) to reset sequence (0=Off):",
+            style="Modern.TLabel",
+        ).pack(side=tk.LEFT, padx=(4, 8))
         self.burst_idle_spinbox = ttk.Spinbox(
             burst_frame,
             textvariable=self.burst_idle_var,
             from_=0,
             to=10000,
             increment=10,
-            width=6,
-            command=self._toggle_mode_labels
+            width=7,
+            command=self._toggle_mode_labels,
+            style="Modern.TSpinbox",
         )
-        self.burst_idle_spinbox.pack(side=tk.LEFT, padx=(0, 5))
+        self.burst_idle_spinbox.pack(side=tk.LEFT, padx=(0, 8))
         self._configure_spinbox(self.burst_idle_spinbox, self.burst_idle_var)
 
         # Amount (Dynamic label)
-        amount_frame = ttk.Frame(settings_frame)
-        amount_frame.pack(fill=tk.X, pady=5)
-        self.amount_dynamic_label = ttk.Label(amount_frame, textvariable=self.amount_label_var)
-        self.amount_dynamic_label.pack(side=tk.LEFT, padx=(5, 0))
-        self.amount_spinbox = ttk.Spinbox(
-            amount_frame, textvariable=self.amount_var, from_=1, to=9999, increment=1, width=6, command=self._apply_pending_settings
+        amount_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        amount_frame.pack(fill=tk.X, pady=6)
+        self.amount_dynamic_label = ttk.Label(
+            amount_frame,
+            textvariable=self.amount_label_var,
+            style="Modern.TLabel",
         )
-        self.amount_spinbox.pack(side=tk.LEFT, padx=(0, 5))
+        self.amount_dynamic_label.pack(side=tk.LEFT, padx=(4, 8))
+        self.amount_spinbox = ttk.Spinbox(
+            amount_frame,
+            textvariable=self.amount_var,
+            from_=1,
+            to=9999,
+            increment=1,
+            width=7,
+            command=self._apply_pending_settings,
+            style="Modern.TSpinbox",
+        )
+        self.amount_spinbox.pack(side=tk.LEFT, padx=(0, 8))
         self._configure_spinbox(self.amount_spinbox, self.amount_var)
         self._toggle_mode_labels(skip_apply=True)
 
-        update_button_frame = ttk.Frame(settings_frame)
-        update_button_frame.pack(fill=tk.X, pady=(0, 5))
+        update_button_frame = ttk.Frame(settings_frame, style="CardInner.TFrame")
+        update_button_frame.pack(fill=tk.X, pady=(6, 0))
         self.update_button = ttk.Button(
             update_button_frame,
-            text="Update Tracking Settings",
-            command=self._on_update_button
+            text="Apply Tracking",
+            command=self._on_update_button,
+            style="Accent.TButton",
         )
-        self.update_button.pack(side=tk.RIGHT, padx=(0, 5))
-        
+        self.update_button.pack(side=tk.RIGHT)
+
         # --- Style Frame ---
-        style_frame = ttk.LabelFrame(main_frame, text="Overlay Style", padding="10")
-        style_frame.pack(fill=tk.X, pady=10)
+        style_frame = ttk.LabelFrame(
+            main_frame,
+            text="Overlay Style",
+            padding="18 14 18 16",
+            style="Card.TLabelframe",
+        )
+        style_frame.pack(fill=tk.X, pady=(0, 16))
 
         # Font Size & Bold
-        font_frame = ttk.Frame(style_frame)
-        font_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(font_frame, text="Font Size:").pack(side=tk.LEFT, padx=(5, 0))
+        font_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        font_frame.pack(fill=tk.X, pady=6)
+        ttk.Label(font_frame, text="Font Size:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         self.font_size_spinbox = ttk.Spinbox(
-            font_frame, textvariable=self.font_size_var, from_=12, to=256, increment=4, width=4, command=self._apply_pending_settings
+            font_frame,
+            textvariable=self.font_size_var,
+            from_=12,
+            to=256,
+            increment=4,
+            width=6,
+            command=self._apply_pending_settings,
+            style="Modern.TSpinbox",
         )
-        self.font_size_spinbox.pack(side=tk.LEFT, padx=5)
+        self.font_size_spinbox.pack(side=tk.LEFT)
         self._configure_spinbox(self.font_size_spinbox, self.font_size_var)
         ttk.Checkbutton(
-            font_frame, text="Bold", variable=self.bold_var, command=self._apply_pending_settings
-        ).pack(side=tk.LEFT, padx=10)
-        
+            font_frame,
+            text="Bold",
+            variable=self.bold_var,
+            command=self._apply_pending_settings,
+            style="Modern.TCheckbutton",
+        ).pack(side=tk.LEFT, padx=(16, 0))
+
         # Colors + Transparent BG
-        color_frame = ttk.Frame(style_frame)
-        color_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(color_frame, text="Text Color:").pack(side=tk.LEFT, padx=(5, 0))
-        ttk.Button(color_frame, textvariable=self.text_color_var, command=lambda: self._choose_color(self.text_color_var)).pack(side=tk.LEFT, padx=5)
-        ttk.Label(color_frame, text="Background:").pack(side=tk.LEFT, padx=(10, 0))
-        ttk.Button(color_frame, textvariable=self.bg_color_var, command=lambda: self._choose_color(self.bg_color_var)).pack(side=tk.LEFT, padx=5)
+        color_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        color_frame.pack(fill=tk.X, pady=6)
+        ttk.Label(color_frame, text="Text Color:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
+        ttk.Button(
+            color_frame,
+            textvariable=self.text_color_var,
+            command=lambda: self._choose_color(self.text_color_var),
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Label(color_frame, text="Background:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(12, 8))
+        ttk.Button(
+            color_frame,
+            textvariable=self.bg_color_var,
+            command=lambda: self._choose_color(self.bg_color_var),
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, padx=(0, 8))
         ttk.Checkbutton(
-            color_frame, text="Transparent BG", variable=self.transparent_var, command=self._apply_pending_settings
-        ).pack(side=tk.LEFT, padx=10)
+            color_frame,
+            text="Transparent BG",
+            variable=self.transparent_var,
+            command=self._apply_pending_settings,
+            style="Modern.TCheckbutton",
+        ).pack(side=tk.LEFT, padx=(16, 0))
 
         # Opacity
-        opacity_frame = ttk.Frame(style_frame)
-        opacity_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(opacity_frame, text="Opacity:").pack(side=tk.LEFT, padx=(5, 0))
+        opacity_frame = ttk.Frame(style_frame, style="CardInner.TFrame")
+        opacity_frame.pack(fill=tk.X, pady=6)
+        ttk.Label(opacity_frame, text="Opacity:", style="Modern.TLabel").pack(side=tk.LEFT, padx=(4, 8))
         self.opacity_scale = ttk.Scale(
             opacity_frame,
             orient=tk.HORIZONTAL,
             from_=10.0,
             to=100.0,
             variable=self.opacity_var,
-            command=self._on_opacity_change  # updates label + schedules apply
+            command=self._on_opacity_change,
+            style="Modern.Horizontal.TScale",
         )
-        self.opacity_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=6)
-        ttk.Label(opacity_frame, textvariable=self.opacity_label_var, width=5, anchor="e").pack(side=tk.LEFT)
+        self.opacity_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
+        ttk.Label(
+            opacity_frame,
+            textvariable=self.opacity_label_var,
+            width=5,
+            anchor="e",
+            style="Modern.TLabel",
+        ).pack(side=tk.LEFT)
 
         # --- Actions Frame ---
-        actions_frame = ttk.LabelFrame(main_frame, text="Actions", padding="10")
-        actions_frame.pack(fill=tk.X, pady=10)
-        actions_row1 = ttk.Frame(actions_frame)
-        actions_row1.pack(fill=tk.X, pady=5)
-        ttk.Button(actions_row1, text="Reset Count (0)", command=lambda: self.core.update_settings(replace(self.settings, count=0))).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        ttk.Button(actions_row1, text="Pause/Resume (9)", command=self.core.toggle_pause).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        actions_row2 = ttk.Frame(actions_frame)
-        actions_row2.pack(fill=tk.X, pady=5)
-        ttk.Button(actions_row2, text="Save Settings", command=self.save_settings).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        ttk.Button(actions_row2, text="Exit (Delete)", command=self._on_close).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        
+        actions_frame = ttk.LabelFrame(
+            main_frame,
+            text="Actions",
+            padding="18 14 18 16",
+            style="Card.TLabelframe",
+        )
+        actions_frame.pack(fill=tk.X, pady=(0, 8))
+        actions_row1 = ttk.Frame(actions_frame, style="CardInner.TFrame")
+        actions_row1.pack(fill=tk.X, pady=6)
+        ttk.Button(
+            actions_row1,
+            text="Reset Count (0)",
+            command=lambda: self.core.update_settings(replace(self.settings, count=0)),
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 8))
+        ttk.Button(
+            actions_row1,
+            text="Pause/Resume (9)",
+            command=self.core.toggle_pause,
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, expand=True, fill=tk.X)
+        actions_row2 = ttk.Frame(actions_frame, style="CardInner.TFrame")
+        actions_row2.pack(fill=tk.X, pady=6)
+        ttk.Button(
+            actions_row2,
+            text="Save Settings",
+            command=self.save_settings,
+            style="Accent.TButton",
+        ).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 8))
+        ttk.Button(
+            actions_row2,
+            text="Exit (Delete)",
+            command=self._on_close,
+            style="Subtle.TButton",
+        ).pack(side=tk.LEFT, expand=True, fill=tk.X)
+
         # --- Status Bar ---
-        status_label = ttk.Label(main_frame, textvariable=self.status, relief=tk.SUNKEN, anchor=tk.W)
-        status_label.pack(fill=tk.X, pady=(10, 0))
+        status_label = ttk.Label(main_frame, textvariable=self.status, anchor=tk.W, style="Status.TLabel")
+        status_label.pack(fill=tk.X, pady=(16, 0))
         self.status_label = status_label
 
     # --- Methods ---
+    def _apply_spinbox_caret_color(self, widget: tk.Misc) -> bool:
+        for option in ("insertbackground", "insertcolor"):
+            try:
+                widget.configure(**{option: self._spinbox_caret_color})
+                return True
+            except (tk.TclError, TypeError, AttributeError):
+                continue
+        return False
+
     def _configure_spinbox(self, spinbox: ttk.Spinbox, var: tk.Variable | None):
+        self._apply_spinbox_caret_color(spinbox)
+        for child in spinbox.winfo_children():
+            try:
+                self._apply_spinbox_caret_color(child)
+            except Exception:
+                continue
         spinbox.bind("<Return>", lambda event, v=var: self._on_spinbox_commit(event, v))
         spinbox.bind("<KP_Enter>", lambda event, v=var: self._on_spinbox_commit(event, v))
 
