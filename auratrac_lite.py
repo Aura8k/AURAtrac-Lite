@@ -690,7 +690,7 @@ class ControlPanel(tk.Toplevel):
             style="CardBody.TFrame",
             padding="18 14 18 16",
         )
-        settings_body.pack(fill=tk.X, pady=(23, 0))
+        settings_body.pack(fill=tk.X, pady=(1, 0))
 
         # Input Capture
         input_capture_frame = ttk.Frame(settings_body, style="CardInner.TFrame")
@@ -788,7 +788,7 @@ class ControlPanel(tk.Toplevel):
             style="CardBody.TFrame",
             padding="18 14 18 16",
         )
-        style_body.pack(fill=tk.X, pady=(23, 0))
+        style_body.pack(fill=tk.X, pady=(1, 0))
 
         # Font Size & Bold
         font_frame = ttk.Frame(style_body, style="CardInner.TFrame")
@@ -873,7 +873,7 @@ class ControlPanel(tk.Toplevel):
             style="CardBody.TFrame",
             padding="18 14 18 16",
         )
-        actions_body.pack(fill=tk.X, pady=(23, 0))
+        actions_body.pack(fill=tk.X, pady=(1, 0))
         actions_row1 = ttk.Frame(actions_body, style="CardInner.TFrame")
         actions_row1.pack(fill=tk.X, pady=6)
         ttk.Button(
